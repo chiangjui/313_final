@@ -86,6 +86,7 @@ btl_cmd = 0
 # 遊戲統計
 kill_count = 0
 game_start_time = 0
+game_end_time = 0
 
 # 難度設定 (1=簡單, 2=普通, 3=困難)
 difficulty = 2
@@ -497,7 +498,7 @@ def apply_settings():
 
 # 存檔/讀檔
 def save_game():
-    global floor, fl_max, pl_x, pl_y, pl_d, pl_a, pl_lifemax, pl_life, pl_str, food, potion, blazegem, kill_count, game_start_time, difficulty, achievements
+    global floor, fl_max, pl_x, pl_y, pl_d, pl_a, pl_lifemax, pl_life, pl_str, food, potion, blazegem, kill_count, game_start_time, game_end_time, difficulty, achievements
     data = {
         "floor": floor,
         "fl_max": fl_max,
@@ -515,6 +516,7 @@ def save_game():
         "seen": seen,
         "kill_count": kill_count,
         "game_start_time": game_start_time,
+        "game_end_time": game_end_time,
         "difficulty": difficulty,
         "achievements": achievements
     }
@@ -526,7 +528,7 @@ def save_game():
         return False
 
 def load_game():
-    global floor, fl_max, pl_x, pl_y, pl_d, pl_a, pl_lifemax, pl_life, pl_str, food, potion, blazegem, dungeon, seen, kill_count, game_start_time, difficulty, achievements
+    global floor, fl_max, pl_x, pl_y, pl_d, pl_a, pl_lifemax, pl_life, pl_str, food, potion, blazegem, dungeon, seen, kill_count, game_start_time, game_end_time, difficulty, achievements
     if not os.path.exists(save_file):
         return False
     try:
@@ -548,6 +550,7 @@ def load_game():
         seen = data.get("seen", [[0]*DUNGEON_W for _ in range(DUNGEON_H)])
         kill_count = data.get("kill_count", 0)
         game_start_time = data.get("game_start_time", pygame.time.get_ticks())
+        game_end_time = data.get("game_end_time", 0)
         difficulty = data.get("difficulty", 2)
         achievements = data.get("achievements", {
             "floor_5": False,
@@ -674,7 +677,7 @@ def main(): # 主要處理
     global pl_a, pl_lifemax, pl_life, pl_str, food, potion, blazegem
     global emy_life, emy_step, emy_blink, dmg_eff
     global settings, settings_sel, pause_sel, pause_return_idx, title_sel
-    global kill_count, game_start_time, difficulty, difficulty_sel, show_difficulty_menu
+    global kill_count, game_start_time, game_end_time, difficulty, difficulty_sel, show_difficulty_menu
     global combo_count, last_kill_time, achievements, achievement_popup, achievement_timer
     dmg = 0
     lif_p = 0
@@ -827,6 +830,7 @@ def main(): # 主要處理
                                 kill_count = 0
                                 combo_count = 0
                                 game_start_time = pygame.time.get_ticks()
+                                game_end_time = 0
                                 achievements = {
                                     "floor_5": False,
                                     "floor_10": False,
@@ -897,6 +901,7 @@ def main(): # 主要處理
                                 kill_count = 0
                                 combo_count = 0
                                 game_start_time = pygame.time.get_ticks()
+                                game_end_time = 0
                                 achievements = {
                                     "floor_5": False,
                                     "floor_10": False,
@@ -1180,6 +1185,10 @@ def main(): # 主要處理
                 draw_dungeon(game_surface, fontS)
             elif tmr == 31:
                 play_se(3)
+                # 記錄遊戲結束時間
+                if game_end_time == 0:
+                    game_end_time = pygame.time.get_ticks()
+                
                 game_surface.fill(BLACK)
                 draw_text(game_surface, "遊戲結束", 340, 100, font, RED)
                 # 顯示統計
@@ -1188,11 +1197,11 @@ def main(): # 主要處理
                 draw_text(game_surface, f"最高紀錄: {fl_max} 樓", 280, y_start + 60, font, CYAN)
                 draw_text(game_surface, f"擊殺數: {kill_count}", 280, y_start + 120, font, WHITE)
                 
-                # 計算統計
+                # 計算統計（使用儲存的結束時間）
                 explored = sum(row.count(1) for row in seen)
                 total_tiles = DUNGEON_W * DUNGEON_H
                 explore_rate = int(explored / total_tiles * 100)
-                elapsed = (pygame.time.get_ticks() - game_start_time) // 1000
+                elapsed = (game_end_time - game_start_time) // 1000
                 minutes = elapsed // 60
                 seconds = elapsed % 60
                 
@@ -1202,7 +1211,7 @@ def main(): # 主要處理
                 
                 draw_text(game_surface, "按空格鍵返回標題", 260, 600, fontS, BLINK[tmr%6])
             elif tmr > 31:
-                # 保持結算畫面顯示
+                # 保持結算畫面顯示（使用儲存的結束時間）
                 game_surface.fill(BLACK)
                 draw_text(game_surface, "遊戲結束", 340, 100, font, RED)
                 y_start = 220
@@ -1213,7 +1222,7 @@ def main(): # 主要處理
                 explored = sum(row.count(1) for row in seen)
                 total_tiles = DUNGEON_W * DUNGEON_H
                 explore_rate = int(explored / total_tiles * 100)
-                elapsed = (pygame.time.get_ticks() - game_start_time) // 1000
+                elapsed = (game_end_time - game_start_time) // 1000
                 minutes = elapsed // 60
                 seconds = elapsed % 60
                 
